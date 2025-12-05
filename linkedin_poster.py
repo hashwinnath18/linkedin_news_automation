@@ -1,7 +1,6 @@
 import os
 import requests
 
-# These must be supplied as environment variables in GitHub Actions.
 ACCESS_TOKEN_ENV = "LINKEDIN_ACCESS_TOKEN"
 MEMBER_URN_ENV = "LINKEDIN_MEMBER_URN"
 
@@ -10,7 +9,7 @@ class LinkedInError(RuntimeError):
     pass
 
 
-def _get_env_or_raise(name: str) -> str:
+def _get_env(name: str) -> str:
     value = os.getenv(name)
     if not value:
         raise LinkedInError(f"Environment variable {name} is not set.")
@@ -19,20 +18,11 @@ def _get_env_or_raise(name: str) -> str:
 
 def post_to_linkedin(text: str, link: str | None = None) -> dict:
     """
-    Post a text (optionally with a link) to LinkedIn using the UGC Posts API.
-
-    Requires:
-        LINKEDIN_ACCESS_TOKEN
-        LINKEDIN_MEMBER_URN
-
-    Returns:
-        Parsed JSON response from LinkedIn.
-
-    Raises:
-        LinkedInError on failures.
+    Post text (and optional article link) to LinkedIn as the authenticated member.
+    Uses the UGC posts endpoint.
     """
-    access_token = _get_env_or_raise(ACCESS_TOKEN_ENV)
-    author_urn = _get_env_or_raise(MEMBER_URN_ENV)
+    access_token = _get_env(ACCESS_TOKEN_ENV)
+    author_urn = _get_env(MEMBER_URN_ENV)
 
     url = "https://api.linkedin.com/v2/ugcPosts"
     headers = {
@@ -46,9 +36,7 @@ def post_to_linkedin(text: str, link: str | None = None) -> dict:
         "lifecycleState": "PUBLISHED",
         "specificContent": {
             "com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {
-                    "text": text
-                },
+                "shareCommentary": {"text": text},
                 "shareMediaCategory": "ARTICLE" if link else "NONE",
             }
         },
@@ -66,20 +54,10 @@ def post_to_linkedin(text: str, link: str | None = None) -> dict:
             }
         ]
 
-    response = requests.post(url, headers=headers, json=body)
-    if response.status_code not in (200, 201):
+    resp = requests.post(url, headers=headers, json=body, timeout=30)
+    if resp.status_code not in (200, 201):
         raise LinkedInError(
-            f"LinkedIn post failed ({response.status_code}): {response.text}"
+            f"LinkedIn post failed ({resp.status_code}): {resp.text}"
         )
 
-    return response.json()
-
-
-if __name__ == "__main__":
-    # Simple manual test (requires env vars to be set)
-    example_text = "Test post from script. Please ignore."
-    try:
-        result = post_to_linkedin(example_text)
-        print("Posted successfully:", result)
-    except Exception as e:
-        print("Error posting to LinkedIn:", e)
+    return resp.json()
