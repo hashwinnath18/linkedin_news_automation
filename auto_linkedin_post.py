@@ -2,7 +2,6 @@ from content_fetcher import get_article
 from linkedin_poster import post_to_linkedin
 
 
-
 def build_caption(title: str, summary: str, link: str) -> str:
     lines = [
         f"🚀 {title}",
