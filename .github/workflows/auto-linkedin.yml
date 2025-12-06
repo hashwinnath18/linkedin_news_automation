@@ -3,7 +3,7 @@ name: Auto LinkedIn Tech & AI Post
 on:
   schedule:
     # Every 2 days at 04:00 UTC (≈ 09:30 IST, adjust as needed)
-    - cron: "* * * * *"
+    - cron: "*/2 * * * *"
   workflow_dispatch: {}
 
 jobs:
